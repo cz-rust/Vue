@@ -30,11 +30,13 @@
         </el-table-column>
         <el-table-column label="操作" width="180">
           <!-- z作用域插槽 -->
-          <el-button type="primary" icon="el-icon-edit" size="mini"></el-button>
-          <el-button type="danger" icon="el-icon-delete" size="mini"></el-button>
-          <el-tooltip :enterable="false" class="item" effect="dark" content="分配角色" placement="top-start">
-            <el-button type="warning" icon="el-icon-setting" size="mini"></el-button>
-          </el-tooltip>
+          <template slot-scope="scope">
+            <el-button type="primary" icon="el-icon-edit" size="mini" @click="editShow(scope.row.id)"></el-button>
+            <el-button type="danger" icon="el-icon-delete" size="mini" @click="removeUsers(scope.row.id)"></el-button>
+            <el-tooltip :enterable="false" class="item" effect="dark" content="分配角色" placement="top-start">
+              <el-button type="warning" icon="el-icon-setting" size="mini"></el-button>
+            </el-tooltip>
+          </template>
         </el-table-column>
       </el-table>
       <el-pagination
@@ -48,6 +50,7 @@
       >
         <!-- current-page当前显示第几页 -->
       </el-pagination>
+      <!-- 添加用户对话框 -->
       <el-dialog title="添加用户" :visible.sync="flag" width="50%" @close="closeForm">
         <el-form :model="addForm" :rules="addrules" ref="addref" label-width="70px">
           <!-- 用户 -->
@@ -72,6 +75,24 @@
           <el-button type="primary" @click="increUsers">确 定</el-button>
         </span>
       </el-dialog>
+      <!-- 编辑用户对话框 -->
+      <el-dialog title="修改用户信息" :visible.sync="editUsers" width="50%" @close="editReste">
+        <el-form :model="getEdit" :rules="editrules" ref="editruleForm" label-width="70px">
+          <el-form-item label="用户名" prop="username">
+            <el-input v-model="getEdit.username" :disabled="true"></el-input>
+          </el-form-item>
+          <el-form-item label="邮箱" prop="email">
+            <el-input v-model="getEdit.email"></el-input>
+          </el-form-item>
+          <el-form-item label="手机号" prop="mobile">
+            <el-input v-model="getEdit.mobile"></el-input>
+          </el-form-item>
+        </el-form>
+        <span slot="footer" class="dialog-footer">
+          <el-button @click="editUsers = false">取 消</el-button>
+          <el-button type="primary" @click="editUsersinfo">确 定</el-button>
+        </span>
+      </el-dialog>
     </el-card>
   </div>
 </template>
@@ -93,6 +114,7 @@ export default {
       callback('请输入正确的邮箱')
     }
     return {
+      editUsers: false,
       queryParams: {
         query: '',
         pagenum: 1 /* 当前页面 */,
@@ -130,7 +152,21 @@ export default {
         ]
       },
       /* 表单信息 */
-      addref: {}
+      addref: {},
+      getEdit: {},
+      editrules: {
+        email: [
+          { required: true, message: '请输入邮箱', trigger: 'blur' },
+          { min: 6, max: 16, message: '长度在 6 到 16 个字符', trigger: 'blur' },
+          { validator: checkEmail, message: '邮箱格式不正确，请重新输入', trigger: 'blur' }
+        ],
+        mobile: [
+          { required: true, message: '请输入手机号', trigger: 'blur' },
+          { min: 6, max: 16, message: '长度在 6 到 16 个字符', trigger: 'blur' },
+          { validator: checkMobile, message: '手机号码不正确，请重新输入', trigger: 'blur' }
+        ]
+      },
+      editruleForm: {}
     }
   },
   created() {
@@ -166,7 +202,7 @@ export default {
       this.flag = true
     },
     closeForm() {
-      this.$refs.addref.resetFields()
+      this.$refs.addref.resetFields() /* 表单重置 */
     },
     increUsers() {
       this.$refs.addref.validate(async vail => {
@@ -177,6 +213,43 @@ export default {
         this.flag = false
         this.getData()
       })
+    },
+    async editShow(id) {
+      const { data: res } = await this.$http.get('users/' + id)
+      if (res.meta.status !== 200) return this.$message.error('获取用户失败')
+      this.$message.success('获取用户成功')
+      this.getEdit = res.data
+      console.log(this.getEdit)
+      this.editUsers = true
+    },
+    editReste() {
+      /*  console.log(this.$refs.editruleForm) */
+      this.$refs.editruleForm.resetFields() /* 表单重置 */
+    },
+    editUsersinfo() {
+      this.$refs.editruleForm.validate(async vail => {
+        if (!vail) return
+        const { data: res } = await this.$http.put('users/' + this.getEdit.id, {
+          mobile: this.getEdit.mobile,
+          email: this.getEdit.email
+        })
+        if (res.meta.status !== 200) return this.$message.error('编辑失败')
+        this.$message.success('编辑成功')
+        this.getData()
+        this.editUsers = false
+      })
+    },
+    async removeUsers(id) {
+      const res = await this.$confirm('此操作将永久删除该用户, 是否继续?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).catch(err => err) //当点击取消时候打印错误信息
+      if (res !== 'confirm') return this.$message.info('取消成功')
+      const { data:doc } = await this.$http.delete('users/' + id)
+      if (doc.meta.status !== 200) return this.$message('操作失败')
+      this.$message.success('删除用户成功')
+      this.getData()
     }
   }
 }
