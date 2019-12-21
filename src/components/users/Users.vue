@@ -34,7 +34,7 @@
             <el-button type="primary" icon="el-icon-edit" size="mini" @click="editShow(scope.row.id)"></el-button>
             <el-button type="danger" icon="el-icon-delete" size="mini" @click="removeUsers(scope.row.id)"></el-button>
             <el-tooltip :enterable="false" class="item" effect="dark" content="分配角色" placement="top-start">
-              <el-button type="warning" icon="el-icon-setting" size="mini"></el-button>
+              <el-button @click="usersRole(scope.row)" type="warning" icon="el-icon-setting" size="mini"></el-button>
             </el-tooltip>
           </template>
         </el-table-column>
@@ -93,6 +93,22 @@
           <el-button type="primary" @click="editUsersinfo">确 定</el-button>
         </span>
       </el-dialog>
+      <el-dialog title="分配角色" :visible.sync="userdialogVisible" width="50%">
+        <div>
+          <p>当前的用户：{{ rolesUser.username }}</p>
+          <p>当前的角色：{{ rolesUser.role_name }}</p>
+          <p>
+            分配新角色：
+            <el-select v-model="roleValue" placeholder="请选择">
+              <el-option v-for="item in chanceRole" :key="item.id" :label="item.roleName" :value="item.id"> </el-option>
+            </el-select>
+          </p>
+        </div>
+        <span slot="footer">
+          <el-button @click="userdialogVisible = false">取 消</el-button>
+          <el-button type="primary" @click="changeRole">确 定</el-button>
+        </span>
+      </el-dialog>
     </el-card>
   </div>
 </template>
@@ -115,6 +131,10 @@ export default {
     }
     return {
       editUsers: false,
+      roleValue: '',
+      chanceRole: {},
+      userdialogVisible: false,
+      rolesUser: [],
       queryParams: {
         query: '',
         pagenum: 1 /* 当前页面 */,
@@ -246,9 +266,26 @@ export default {
         type: 'warning'
       }).catch(err => err) //当点击取消时候打印错误信息
       if (res !== 'confirm') return this.$message.info('取消成功')
-      const { data:doc } = await this.$http.delete('users/' + id)
+      const { data: doc } = await this.$http.delete('users/' + id)
       if (doc.meta.status !== 200) return this.$message('操作失败')
       this.$message.success('删除用户成功')
+      this.getData()
+    },
+    async usersRole(val) {
+      this.rolesUser = val
+      const { data: res } = await this.$http('roles')
+      if (res.meta.status !== 200) return this.$message('获取数据失败')
+      console.log(res.data)
+      this.chanceRole = res.data
+      this.userdialogVisible = true
+    },
+    async changeRole() {
+      console.log(this.rolesUser.id)
+
+      if (!this.roleValue) return this.$message('请选择角色')
+      const { data: res } = await this.$http.put(`users/${this.rolesUser.id}/role`, { rid: this.roleValue })
+      if (res.meta.status !== 200) return this.$message.error('操作失败')
+      this.userdialogVisible = false
       this.getData()
     }
   }
