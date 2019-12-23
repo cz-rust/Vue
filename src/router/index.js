@@ -8,6 +8,7 @@ import rights from '../components/power/rights.vue'
 import mbx from './mbx.vue'
 import roles from '../components/power/roles.vue'
 import goods from '../components/goods/goods.vue'
+import params from '../components/goods/params.vue'
 Vue.use(VueRouter)
 /* const routes = [
 
@@ -26,7 +27,8 @@ const router = new VueRouter({
         { path: '/users', component: users },
         { path: '/rights', component: rights },
         { path: '/roles', component: roles },
-        { path: '/categories', component: goods }
+        { path: '/categories', component: goods },
+        { path: '/params', component: params }
       ]
     }
   ]
