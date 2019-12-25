@@ -269,6 +269,9 @@ export default {
       const { data: doc } = await this.$http.delete('users/' + id)
       if (doc.meta.status !== 200) return this.$message('操作失败')
       this.$message.success('删除用户成功')
+      if (this.userList.length <= 1) {
+        this.queryParams.pagenum -= 1
+      }
       this.getData()
     },
     async usersRole(val) {
